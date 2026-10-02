@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -390,7 +391,7 @@ id="cameraCount"
 type="number"
 min="1"
 max="500"
-value="55"
+value="61"
 >
 
 </div>
@@ -464,25 +465,32 @@ onclick="exportCSV()"
 
 <div class="note">
 
-<strong>หลักการเวลา:</strong>
-
-30 วัน จะแสดงเวลารอบเต็มเป็น
-
-<strong>
-29 วัน 23 ชั่วโมง 59 นาที 59 วินาที
-</strong>
+<strong>หลักการคำนวณ:</strong>
 
 <br>
 
-31 วัน จะแสดงเป็น
-
-<strong>
-30 วัน 23 ชั่วโมง 59 นาที 59 วินาที
-</strong>
+เวลาทำงานเต็มต่อกล้อง =
+<strong>จำนวนวัน × 24 ชั่วโมง × 60 นาที</strong>
 
 <br>
 
-ไม่หัก 1 วินาทีซ้ำในเวลาทำงาน
+เวลาทำงานเต็มรวมทุกกล้อง =
+<strong>จำนวนกล้อง × จำนวนวัน × 24 × 60 นาที</strong>
+
+<br>
+
+ตัวอย่าง 55 กล้อง × 30 วัน × 24 × 60 =
+<strong>2,376,000 นาที</strong>
+
+<br>
+
+หากมี 61 กล้อง × 30 วัน × 24 × 60 =
+<strong>2,635,200 นาที</strong>
+
+<br>
+
+เวลาทำงานรวม =
+<strong>เวลาทำงานเต็มรวม - เวลาดับรวม</strong>
 
 </div>
 
@@ -510,7 +518,7 @@ onclick="exportCSV()"
 class="value blue"
 id="sumCameras"
 >
-55
+61
 </div>
 
 </div>
@@ -519,7 +527,7 @@ id="sumCameras"
 <div class="stat">
 
 <div class="label">
-เวลารอบเต็ม / กล้อง
+เวลาทำงานเต็ม / กล้อง
 </div>
 
 <div
@@ -535,7 +543,7 @@ id="sumPeriod"
 <div class="stat">
 
 <div class="label">
-เวลาทำงานรวม
+เวลาทำงานรวมทั้งเดือน
 </div>
 
 <div
@@ -701,12 +709,8 @@ Uptime
 
 แต่ละกล้องสามารถเพิ่ม Downtime ได้หลายครั้ง
 
-เช่น
-
-วันที่ 1 ดับ 2 นาที
-
-วันที่ 7 ดับ 3 นาที
-
+เช่น วันที่ 1 ดับ 2 นาที,
+วันที่ 7 ดับ 3 นาที,
 วันที่ 20 ดับ 1 นาที
 
 ระบบจะรวมเวลาให้อัตโนมัติ
@@ -745,11 +749,11 @@ Uptime
 </th>
 
 <th>
-Operation Time
+Operation Time (Minutes)
 </th>
 
 <th>
-Unexpected downtime
+Unexpected downtime (Minutes)
 </th>
 
 <th>
@@ -1026,10 +1030,9 @@ function init() {
     );
 
 
-    /* ค่าเริ่มต้น กันยายน */
+    /* ค่าเริ่มต้น ตุลาคม */
 
-    select.value = 8;
-
+    select.value = 9;
 
     createCameras();
 
@@ -1054,32 +1057,16 @@ function daysInMonth(month, year) {
 
 
 /* =====================================================
-   เวลารอบเต็มของ Operation Report
+   เวลาทำงานเต็ม "ต่อตัวกล้อง"
+   
+   หน่วย = นาที
 
-   ตัวอย่าง
+   จำนวนวัน × 24 × 60
 
-   30 วัน
-   = 30 * 24 * 60 * 60
-   = 2,592,000 วินาที
-
-   แต่รูปแบบรายงานต้องแสดง
-
-   29 วัน
-   23 ชั่วโมง
-   59 นาที
-   59 วินาที
-
-   ดังนั้นค่าที่ใช้คือ
-
-   2,591,999 วินาที
-
-   จุดสำคัญคือกำหนดค่า "รอบรายงาน"
-   เป็นแบบนี้ตั้งแต่ต้น
-
-   เวลาทำงานจะไม่หัก -1 ซ้ำอีก
+   ไม่มีการหัก 1 วินาที
 ===================================================== */
 
-function reportPeriodSeconds() {
+function fullMinutesPerCamera() {
 
     const month =
         Number(
@@ -1091,156 +1078,79 @@ function reportPeriodSeconds() {
             document.getElementById("year").value
         );
 
+    const days =
+        daysInMonth(month, year);
 
-    return (
-        daysInMonth(month, year)
-        * 86400
-    ) - 1;
+    return days * 24 * 60;
 
 }
 
 
 
 /* =====================================================
-   แปลงวินาทีเป็นภาษาไทย
+   เวลาทำงานเต็ม "รวมทุกกล้อง"
+   
+   จำนวนกล้อง × จำนวนวัน × 24 × 60
 ===================================================== */
 
-function formatThaiTime(seconds) {
-
-    seconds =
-        Math.max(
-            0,
-            Math.round(seconds)
-        );
-
-
-    const days =
-        Math.floor(
-            seconds / 86400
-        );
-
-
-    seconds %= 86400;
-
-
-    const hours =
-        Math.floor(
-            seconds / 3600
-        );
-
-
-    seconds %= 3600;
-
-
-    const minutes =
-        Math.floor(
-            seconds / 60
-        );
-
-
-    const secs =
-        seconds % 60;
-
-
-    let result = [];
-
-
-    if (days > 0) {
-
-        result.push(
-            days + " วัน"
-        );
-
-    }
-
-
-    if (hours > 0) {
-
-        result.push(
-            hours + " ชั่วโมง"
-        );
-
-    }
-
-
-    if (minutes > 0) {
-
-        result.push(
-            minutes + " นาที"
-        );
-
-    }
-
-
-    if (
-        secs > 0 ||
-        result.length === 0
-    ) {
-
-        result.push(
-            secs + " วินาที"
-        );
-
-    }
-
-
-    return result.join(" ");
-
-}
-
-
-
-/* =====================================================
-   แปลงวินาทีเป็นรูปแบบ Operation Report
-===================================================== */
-
-function formatEnglishTime(seconds) {
-
-    seconds =
-        Math.max(
-            0,
-            Math.round(seconds)
-        );
-
-
-    const days =
-        Math.floor(
-            seconds / 86400
-        );
-
-
-    seconds %= 86400;
-
-
-    const hours =
-        Math.floor(
-            seconds / 3600
-        );
-
-
-    seconds %= 3600;
-
-
-    const minutes =
-        Math.floor(
-            seconds / 60
-        );
-
-
-    const secs =
-        seconds % 60;
-
+function fullMinutesAllCameras() {
 
     return (
-        days +
-        " d. " +
-        hours +
-        " hr. " +
-        minutes +
-        " min. " +
-        secs +
-        " sec."
+        cameras.length *
+        fullMinutesPerCamera()
     );
+
+}
+
+
+
+/* =====================================================
+   แปลงวินาทีเป็นนาที
+   
+   ใช้สำหรับ Downtime
+===================================================== */
+
+function downtimeToMinutes(camera) {
+
+    const seconds =
+        camera.outages.reduce(
+            function(total, outage) {
+
+                return total
+                    + (Number(outage.hours) * 3600)
+                    + (Number(outage.minutes) * 60)
+                    + Number(outage.seconds);
+
+            },
+            0
+        );
+
+    return seconds / 60;
+
+}
+
+
+
+/* =====================================================
+   แสดงนาที
+   
+   ถ้ามีวินาทีเศษ จะแสดงทศนิยม 2 ตำแหน่ง
+===================================================== */
+
+function formatMinutes(minutes) {
+
+    const value =
+        Math.max(0, Number(minutes) || 0);
+
+    return value.toLocaleString(
+        "en-US",
+        {
+            minimumFractionDigits:
+                value % 1 !== 0 ? 2 : 0,
+
+            maximumFractionDigits: 2
+        }
+    ) + " นาที";
 
 }
 
@@ -1305,7 +1215,7 @@ function createCameras() {
                     document.getElementById(
                         "cameraCount"
                     ).value
-                ) || 55
+                ) || 61
             )
         );
 
@@ -1334,6 +1244,11 @@ function createCameras() {
 
             }
         );
+
+
+    document.getElementById(
+        "cameraCount"
+    ).value = count;
 
 
     renderCameras();
@@ -1504,47 +1419,13 @@ function removeCamera(index) {
 
 
 /* =====================================================
-   รวม Downtime ของกล้อง
-===================================================== */
-
-function cameraDowntimeSeconds(camera) {
-
-    return camera.outages.reduce(
-        function(total, outage) {
-
-            return (
-                total +
-
-                (
-                    outage.hours *
-                    3600
-                ) +
-
-                (
-                    outage.minutes *
-                    60
-                ) +
-
-                outage.seconds
-            );
-
-        },
-        0
-    );
-
-}
-
-
-
-/* =====================================================
    คำนวณทั้งหมด
 ===================================================== */
 
 function calculateAll() {
 
-
-    const fullPeriod =
-        reportPeriodSeconds();
+    const periodPerCamera =
+        fullMinutesPerCamera();
 
 
     let totalDown = 0;
@@ -1564,45 +1445,37 @@ function calculateAll() {
     cameras.forEach(
         function(camera, index) {
 
+            /*
+             Downtime ของกล้องนี้
+             แปลงเป็นนาที
+            */
 
             const down =
                 Math.min(
-                    cameraDowntimeSeconds(
-                        camera
-                    ),
-                    fullPeriod
+                    downtimeToMinutes(camera),
+                    periodPerCamera
                 );
 
 
             /*
-             เวลาทำงาน
-
-             ไม่ต้องลบ 1 อีก
-
-             เพราะ fullPeriod
-             เป็น 29:23:59 อยู่แล้ว
+             เวลาทำงานของกล้องนี้
             */
 
             const working =
                 Math.max(
                     0,
-                    fullPeriod - down
+                    periodPerCamera - down
                 );
 
 
+            /*
+             Uptime รายกล้อง
+            */
+
             const uptimePercent =
-                fullPeriod > 0
-
-                ?
-
-                (
-                    working /
-                    fullPeriod
-                ) * 100
-
-                :
-
-                0;
+                periodPerCamera > 0
+                    ? (working / periodPerCamera) * 100
+                    : 0;
 
 
             totalDown += down;
@@ -1615,7 +1488,6 @@ function calculateAll() {
                 camera.outages.length;
 
 
-
             if (down > 0) {
 
                 affected++;
@@ -1625,7 +1497,6 @@ function calculateAll() {
                 perfect++;
 
             }
-
 
 
             const eventElement =
@@ -1652,7 +1523,6 @@ function calculateAll() {
                 );
 
 
-
             if (eventElement) {
 
                 eventElement.textContent =
@@ -1664,9 +1534,7 @@ function calculateAll() {
             if (workElement) {
 
                 workElement.textContent =
-                    formatThaiTime(
-                        working
-                    );
+                    formatMinutes(working);
 
             }
 
@@ -1674,9 +1542,7 @@ function calculateAll() {
             if (downElement) {
 
                 downElement.textContent =
-                    formatThaiTime(
-                        down
-                    );
+                    formatMinutes(down);
 
             }
 
@@ -1704,6 +1570,25 @@ ${uptimePercent.toFixed(2)}%
     );
 
 
+    /*
+       เวลาทำงานเต็มรวมทุกกล้อง
+    */
+
+    const fullAllCameras =
+        fullMinutesAllCameras();
+
+
+    /*
+       เวลาทำงานรวม =
+       เวลาทำงานเต็มรวม - Downtime รวม
+    */
+
+    totalWorking =
+        Math.max(
+            0,
+            fullAllCameras - totalDown
+        );
+
 
     document.getElementById(
         "sumCameras"
@@ -1711,32 +1596,22 @@ ${uptimePercent.toFixed(2)}%
         cameras.length;
 
 
-
     document.getElementById(
         "sumPeriod"
     ).textContent =
-        formatThaiTime(
-            fullPeriod
-        );
-
+        formatMinutes(periodPerCamera);
 
 
     document.getElementById(
         "sumWorking"
     ).textContent =
-        formatThaiTime(
-            totalWorking
-        );
-
+        formatMinutes(totalWorking);
 
 
     document.getElementById(
         "sumDown"
     ).textContent =
-        formatThaiTime(
-            totalDown
-        );
-
+        formatMinutes(totalDown);
 
 
     document.getElementById(
@@ -1745,16 +1620,9 @@ ${uptimePercent.toFixed(2)}%
 
         (
             cameras.length
-            ?
-
-            totalUptime /
-            cameras.length
-
-            :
-
-            0
+                ? totalUptime / cameras.length
+                : 0
         ).toFixed(2) + "%";
-
 
 
     document.getElementById(
@@ -1763,19 +1631,16 @@ ${uptimePercent.toFixed(2)}%
         totalEvents;
 
 
-
     document.getElementById(
         "sumAffected"
     ).textContent =
         affected;
 
 
-
     document.getElementById(
         "sumPerfect"
     ).textContent =
         perfect;
-
 
 
     renderReport();
@@ -1790,7 +1655,6 @@ ${uptimePercent.toFixed(2)}%
 
 function renderReport() {
 
-
     const body =
         document.getElementById(
             "reportBody"
@@ -1800,36 +1664,31 @@ function renderReport() {
     body.innerHTML = "";
 
 
-    const fullPeriod =
-        reportPeriodSeconds();
-
+    const periodPerCamera =
+        fullMinutesPerCamera();
 
 
     cameras.forEach(
         function(camera) {
 
-
             const down =
                 Math.min(
-                    cameraDowntimeSeconds(
-                        camera
-                    ),
-                    fullPeriod
+                    downtimeToMinutes(camera),
+                    periodPerCamera
                 );
 
 
             const working =
                 Math.max(
                     0,
-                    fullPeriod - down
+                    periodPerCamera - down
                 );
 
 
             const uptimePercent =
-                working /
-                fullPeriod *
-                100;
-
+                periodPerCamera > 0
+                    ? (working / periodPerCamera) * 100
+                    : 0;
 
 
             const remarks =
@@ -1848,10 +1707,8 @@ function renderReport() {
                     .join("; ");
 
 
-
             const row =
                 document.createElement("tr");
-
 
 
             row.innerHTML = `
@@ -1872,12 +1729,12 @@ ${uptimePercent.toFixed(2)}%
 
 
 <td>
-${formatEnglishTime(working)}
+${formatMinutes(working)}
 </td>
 
 
 <td>
-${formatEnglishTime(down)}
+${formatMinutes(down)}
 </td>
 
 
@@ -1971,7 +1828,6 @@ function closeModal() {
 
 function renderOutages() {
 
-
     const body =
         document.getElementById(
             "outageBody"
@@ -1990,7 +1846,6 @@ function renderOutages() {
 
     const outages =
         cameras[currentCamera].outages;
-
 
 
     if (!outages.length) {
@@ -2017,25 +1872,20 @@ style="text-align:center;color:#64748b"
     }
 
 
-
     outages.forEach(
         function(outage, index) {
 
-
             const totalSeconds =
 
-                outage.hours *
-                3600
+                Number(outage.hours) * 3600
 
                 +
 
-                outage.minutes *
-                60
+                Number(outage.minutes) * 60
 
                 +
 
-                outage.seconds;
-
+                Number(outage.seconds);
 
 
             const row =
@@ -2055,7 +1905,7 @@ ${index + 1}
 
 
 <td>
-${formatThaiTime(totalSeconds)}
+${formatMinutes(totalSeconds / 60)}
 </td>
 
 
@@ -2102,13 +1952,11 @@ deleteOutage(${index})
 
 function addOutage() {
 
-
     if (currentCamera < 0) {
 
         return;
 
     }
-
 
 
     const month =
@@ -2134,7 +1982,6 @@ function addOutage() {
         );
 
 
-
     const date =
         Math.floor(
             Number(
@@ -2143,7 +1990,6 @@ function addOutage() {
                 ).value
             )
         );
-
 
 
     const hours =
@@ -2159,7 +2005,6 @@ function addOutage() {
         );
 
 
-
     const minutes =
         Math.max(
             0,
@@ -2173,7 +2018,6 @@ function addOutage() {
         );
 
 
-
     const seconds =
         Math.max(
             0,
@@ -2185,7 +2029,6 @@ function addOutage() {
                 ) || 0
             )
         );
-
 
 
     if (
@@ -2204,7 +2047,6 @@ function addOutage() {
     }
 
 
-
     if (
         hours === 0 &&
         minutes === 0 &&
@@ -2218,7 +2060,6 @@ function addOutage() {
         return;
 
     }
-
 
 
     cameras[currentCamera]
@@ -2241,7 +2082,6 @@ function addOutage() {
         });
 
 
-
     cameras[currentCamera]
         .outages
         .sort(
@@ -2251,7 +2091,6 @@ function addOutage() {
 
             }
         );
-
 
 
     renderOutages();
@@ -2300,7 +2139,6 @@ function saveOutages() {
 
 function clearAll() {
 
-
     if (
         !confirm(
             "ต้องการล้าง Downtime ของกล้องทั้งหมดหรือไม่?"
@@ -2310,7 +2148,6 @@ function clearAll() {
         return;
 
     }
-
 
 
     cameras.forEach(
@@ -2336,10 +2173,9 @@ function clearAll() {
 
 function loadExample() {
 
-
     document.getElementById(
         "month"
-    ).value = 8;
+    ).value = 9;
 
 
     document.getElementById(
@@ -2349,7 +2185,7 @@ function loadExample() {
 
     document.getElementById(
         "cameraCount"
-    ).value = 55;
+    ).value = 61;
 
 
     document.getElementById(
@@ -2357,20 +2193,17 @@ function loadExample() {
     ).value = "Admin";
 
 
-
     cameras =
         Array.from(
             {
-                length: 55
+                length: 61
             },
             function(_, index) {
 
                 return {
 
                     name:
-                        defaultCameraName(
-                            index
-                        ),
+                        defaultCameraName(index),
 
                     outages: []
 
@@ -2380,22 +2213,14 @@ function loadExample() {
         );
 
 
-
     /*
       ตัวอย่างกล้อง 1
 
-      ดับ 5:58
+      ดับ 5 นาที 58 วินาที
       +
-      ดับ 10:00
+      ดับ 10 นาที
 
-      รวม = 15:58
-
-      เวลาทำงาน
-
-      29 วัน
-      23 ชั่วโมง
-      44 นาที
-      1 วินาที
+      รวม 15.9667 นาที
     */
 
     cameras[0].outages = [
@@ -2433,7 +2258,6 @@ function loadExample() {
     ];
 
 
-
     renderCameras();
 
     calculateAll();
@@ -2447,7 +2271,6 @@ function loadExample() {
 ===================================================== */
 
 function printReport() {
-
 
     calculateAll();
 
@@ -2480,36 +2303,36 @@ function printReport() {
         );
 
 
-    const fullPeriod =
-        reportPeriodSeconds();
+    const periodPerCamera =
+        fullMinutesPerCamera();
 
+
+    const totalPeriod =
+        fullMinutesAllCameras();
 
 
     const rows =
         cameras.map(
             function(camera) {
 
-
                 const down =
                     Math.min(
-                        cameraDowntimeSeconds(
-                            camera
-                        ),
-                        fullPeriod
+                        downtimeToMinutes(camera),
+                        periodPerCamera
                     );
 
 
                 const working =
                     Math.max(
                         0,
-                        fullPeriod - down
+                        periodPerCamera - down
                     );
 
 
                 const uptime =
-                    working /
-                    fullPeriod *
-                    100;
+                    periodPerCamera > 0
+                        ? (working / periodPerCamera) * 100
+                        : 0;
 
 
                 const remarks =
@@ -2528,7 +2351,6 @@ function printReport() {
                         .join("; ");
 
 
-
                 return `
 
 <tr>
@@ -2542,11 +2364,11 @@ ${uptime.toFixed(2)}%
 </td>
 
 <td>
-${formatEnglishTime(working)}
+${working.toFixed(2)}
 </td>
 
 <td>
-${formatEnglishTime(down)}
+${down.toFixed(2)}
 </td>
 
 <td>
@@ -2561,13 +2383,11 @@ ${escapeHtml(remarks)}
         ).join("");
 
 
-
     const win =
         window.open(
             "",
             "_blank"
         );
-
 
 
     win.document.write(`
@@ -2655,6 +2475,14 @@ background:
 
 }
 
+.summary {
+
+margin-top: 15px;
+
+font-weight: bold;
+
+}
+
 </style>
 
 </head>
@@ -2688,21 +2516,29 @@ ${user}
 
 
 <p>
-
-Operation Time ต่อกล้อง:
-
-${formatEnglishTime(fullPeriod)}
-
+Number of cameras:
+${cameras.length}
 </p>
 
 
 <p>
-
-Number of cameras:
-${cameras.length}
-
+เวลาทำงานเต็มต่อกล้อง:
+${periodPerCamera.toLocaleString()} นาที
 </p>
 
+
+<p>
+เวลาทำงานเต็มรวมทุกกล้อง:
+${totalPeriod.toLocaleString()} นาที
+</p>
+
+
+<div class="summary">
+
+เวลาทำงานรวมทั้งเดือน =
+เวลาทำงานเต็มรวม - เวลาดับรวม
+
+</div>
 
 
 <table>
@@ -2721,11 +2557,11 @@ Uptime
 </th>
 
 <th>
-Operation Time
+Operation Time (Minutes)
 </th>
 
 <th>
-Unexpected downtime
+Unexpected downtime (Minutes)
 </th>
 
 <th>
@@ -2773,12 +2609,11 @@ window.print();
 
 function exportCSV() {
 
-
     calculateAll();
 
 
-    const fullPeriod =
-        reportPeriodSeconds();
+    const periodPerCamera =
+        fullMinutesPerCamera();
 
 
     let csv =
@@ -2786,35 +2621,30 @@ function exportCSV() {
 
 
     csv +=
-        "Source entity,Availability,Uptime,Operation Time,Unexpected downtime,Remark\n";
-
+        "Source entity,Availability,Uptime,Operation Time (Minutes),Unexpected downtime (Minutes),Remark\n";
 
 
     cameras.forEach(
         function(camera) {
 
-
             const down =
                 Math.min(
-                    cameraDowntimeSeconds(
-                        camera
-                    ),
-                    fullPeriod
+                    downtimeToMinutes(camera),
+                    periodPerCamera
                 );
 
 
             const working =
                 Math.max(
                     0,
-                    fullPeriod - down
+                    periodPerCamera - down
                 );
 
 
             const uptime =
-                working /
-                fullPeriod *
-                100;
-
+                periodPerCamera > 0
+                    ? (working / periodPerCamera) * 100
+                    : 0;
 
 
             const remark =
@@ -2833,7 +2663,6 @@ function exportCSV() {
                     .join("; ");
 
 
-
             const row = [
 
                 camera.name,
@@ -2842,13 +2671,9 @@ function exportCSV() {
 
                 uptime.toFixed(2) + "%",
 
-                formatEnglishTime(
-                    working
-                ),
+                working.toFixed(2),
 
-                formatEnglishTime(
-                    down
-                ),
+                down.toFixed(2),
 
                 remark
 
@@ -2871,13 +2696,11 @@ function exportCSV() {
             .join(",");
 
 
-
             csv +=
                 row + "\n";
 
         }
     );
-
 
 
     const blob =
@@ -2888,7 +2711,6 @@ function exportCSV() {
                     "text/csv;charset=utf-8"
             }
         );
-
 
 
     const url =
@@ -2949,7 +2771,13 @@ document
     .getElementById("month")
     .addEventListener(
         "change",
-        calculateAll
+        function() {
+
+            renderCameras();
+
+            calculateAll();
+
+        }
     );
 
 
@@ -2957,7 +2785,13 @@ document
     .getElementById("year")
     .addEventListener(
         "change",
-        calculateAll
+        function() {
+
+            renderCameras();
+
+            calculateAll();
+
+        }
     );
 
 
@@ -2972,3 +2806,4 @@ init();
 
 </body>
 </html>
+```
