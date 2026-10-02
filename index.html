@@ -2927,162 +2927,134 @@ saveData();
 
 function printReport(){
 
-calculateAll();
+    const month =
+        monthNames[
+            Number(document.getElementById("month").value) - 1
+        ];
+
+    const year =
+        Number(document.getElementById("year").value);
+
+    const user =
+        document.getElementById("reportUser").value || "Admin";
+
+    const monthNumber =
+        String(document.getElementById("month").value).padStart(2,"0");
+
+    const days =
+        daysInMonth(
+            Number(document.getElementById("month").value),
+            year
+        );
+
+    /* =====================================================
+       วันที่สร้างรายงาน
+       ===================================================== */
+
+    const now = new Date();
+
+    const reportDate =
+        String(now.getDate()).padStart(2,"0") + "/" +
+        String(now.getMonth()+1).padStart(2,"0") + "/" +
+        now.getFullYear() + " " +
+        now.toLocaleTimeString("en-US");
 
 
-const monthIndex=
-Number(
-document.getElementById(
-"month"
-).value
-);
+    /* =====================================================
+       Event Timestamp
+       ===================================================== */
+
+    const eventTimestamp =
+        `${monthNumber}/01/${year} 12:00:00 AM and ` +
+        `${monthNumber}/${days}/${year} 11:59:59 PM`;
 
 
-const monthName=
-TH_MONTHS[
-monthIndex
-];
+    /* =====================================================
+       สร้างรายการกล้องทั้งหมด
+       ===================================================== */
+
+    let rows = "";
+
+    cameras.forEach((camera,index)=>{
+
+        const full =
+            reportPeriodSeconds();
+
+        const down =
+            getCameraDowntimeSeconds(camera);
+
+        const working =
+            Math.max(0,full-down);
+
+        const uptime =
+            full > 0
+                ? (working/full)*100
+                : 0;
 
 
-const year=
-document.getElementById(
-"year"
-).value;
+        /*
+           แปลงเวลาเป็นรูปแบบ
+           29 d. 23 hr. 59 min. 59 sec.
+        */
+
+        function formatPrintDuration(totalSeconds){
+
+            totalSeconds =
+                Math.max(
+                    0,
+                    Math.floor(totalSeconds)
+                );
+
+            const d =
+                Math.floor(totalSeconds / 86400);
+
+            totalSeconds %= 86400;
+
+            const h =
+                Math.floor(totalSeconds / 3600);
+
+            totalSeconds %= 3600;
+
+            const m =
+                Math.floor(totalSeconds / 60);
+
+            const s =
+                totalSeconds % 60;
+
+            return `${d} d. ${h} hr. ${m} min. ${s} sec.`;
+        }
 
 
-const user=
-escapeHtml(
-document.getElementById(
-"reportUser"
-).value
-);
+        rows += `
+            <tr>
+
+                <td class="source">
+                    ${escapeHtml(camera.name)}
+                </td>
+
+                <td class="center">
+                    ${uptime.toFixed(2)}%
+                </td>
+
+                <td class="center">
+                    ${formatPrintDuration(working)}
+                </td>
+
+                <td class="center">
+                    ${formatPrintDuration(down)}
+                </td>
+
+            </tr>
+        `;
+
+    });
 
 
-const fullPeriod=
-reportPeriodSeconds();
+    /* =====================================================
+       HTML สำหรับหน้าพิมพ์
+       ===================================================== */
 
-
-const totalFullMinutes=
-summaryFullPeriodMinutes();
-
-
-const totalDownSeconds=
-cameras.reduce(
-function(
-sum,
-camera
-){
-
-return sum+
-cameraDowntimeSeconds(
-camera
-);
-
-},
-0
-);
-
-
-const totalDownMinutes=
-totalDownSeconds/
-60;
-
-
-const totalWorkingMinutes=
-Math.max(
-0,
-totalFullMinutes-
-totalDownMinutes
-);
-
-
-const rows=
-cameras.map(
-function(camera){
-
-const down=
-Math.min(
-cameraDowntimeSeconds(
-camera
-),
-fullPeriod
-);
-
-
-const working=
-Math.max(
-0,
-fullPeriod-down
-);
-
-
-const uptime=
-working/
-fullPeriod*
-100;
-
-
-const remarks=
-camera.outages
-.map(
-function(x){
-
-return x.remark;
-
-}
-)
-.filter(Boolean)
-.join("; ");
-
-
-return `
-
-<tr>
-
-<td>
-${escapeHtml(
-camera.name
-)}
-</td>
-
-<td>
-${uptime.toFixed(2)}%
-</td>
-
-<td>
-${formatEnglishTime(
-working
-)}
-</td>
-
-<td>
-${formatEnglishTime(
-down
-)}
-</td>
-
-<td>
-${escapeHtml(
-remarks
-)}
-</td>
-
-</tr>
-
-`;
-
-}
-).join("");
-
-
-const win=
-window.open(
-"",
-"_blank"
-);
-
-
-win.document.write(`
+    const html = `
 
 <!DOCTYPE html>
 
@@ -3090,69 +3062,167 @@ win.document.write(`
 
 <head>
 
-<meta charset="utf-8">
+<meta charset="UTF-8">
 
-<title>
-Operation Report
-</title>
+<title>Operation Report</title>
 
 <style>
 
-body{
+@page {
 
-font-family:
-Arial,
-"Noto Sans Thai",
-sans-serif;
+    size: A4 portrait;
 
-font-size:12px;
+    margin:
+        12mm
+        10mm
+        10mm
+        10mm;
+}
 
-margin:25px;
 
-color:#111827;
+* {
+    box-sizing:border-box;
+}
+
+
+body {
+
+    margin:0;
+
+    font-family:
+        Arial,
+        "Noto Sans Thai",
+        Tahoma,
+        sans-serif;
+
+    color:#111;
+
+    font-size:11px;
 
 }
 
-h1{
-font-size:18px;
-}
 
-p{
-margin:5px 0;
-}
+.report-title {
 
-.summary{
+    font-size:15px;
 
-margin-top:15px;
+    font-weight:normal;
 
-padding:12px;
-
-border:1px solid #999;
+    margin-bottom:12px;
 
 }
 
-table{
 
-width:100%;
+.info {
 
-border-collapse:collapse;
+    line-height:1.75;
 
-margin-top:15px;
+    margin-bottom:6px;
 
 }
+
+
+.info-row {
+
+    white-space:nowrap;
+
+}
+
+
+table {
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    table-layout:fixed;
+
+}
+
 
 th,
-td{
+td {
 
-border:1px solid #999;
+    border:1px solid #555;
 
-padding:6px;
+    padding:4px 5px;
+
+    font-size:10px;
+
+    height:20px;
 
 }
 
-th{
 
-background:#eee;
+th {
+
+    text-align:center;
+
+    font-weight:normal;
+
+    background:white;
+
+}
+
+
+.source {
+
+    width:34%;
+
+    text-align:center;
+
+}
+
+
+.center {
+
+    text-align:center;
+
+    white-space:nowrap;
+
+}
+
+
+thead {
+
+    display:table-header-group;
+
+}
+
+
+tr {
+
+    page-break-inside:avoid;
+
+}
+
+
+.col-source {
+    width:34%;
+}
+
+
+.col-availability {
+    width:15%;
+}
+
+
+.col-uptime {
+    width:25%;
+}
+
+
+.col-downtime {
+    width:26%;
+}
+
+
+@media print {
+
+    body {
+        print-color-adjust:exact;
+        -webkit-print-color-adjust:exact;
+    }
 
 }
 
@@ -3160,146 +3230,122 @@ background:#eee;
 
 </head>
 
+
 <body>
 
 
-<h1>
+<div class="report-title">
 
-รายงานผลการปฏิบัติงานตามปกติ
+    1 รายงานผลการปฏิบัติงานตามปกติ (Operation Report)
+    ระยะเวลาการใช้งานของรอบเดือน${month} ${year + 543}
 
-(Operation Report)
-
-รอบเดือน
-${monthName}
-${year}
-
-</h1>
+</div>
 
 
-<p>
-Report: Health statistics
-</p>
+<div class="info">
 
+    <div class="info-row">
+        <strong>Report:</strong> Health statistics
+    </div>
 
-<p>
-User: ${user}
-</p>
+    <div class="info-row">
+        <strong>User:</strong> ${escapeHtml(user)}
+    </div>
 
+    <div class="info-row">
+        <strong>Date:</strong> ${reportDate}
+    </div>
 
-<div class="summary">
+    <div class="info-row">
+        <strong>Number of query results returned:</strong>
+        ${cameras.length}
+    </div>
 
-<p>
-จำนวนกล้องสำหรับสรุป:
-<strong>
-${SUMMARY_CAMERA_COUNT}
-</strong>
-ตัว
-</p>
+    <div class="info-row">
+        <strong>Source Group :</strong> Camera
+    </div>
 
+    <div class="info-row">
+        <strong>Event timestamp:</strong>
+        Between ${eventTimestamp}
+    </div>
 
-<p>
-จำนวนรายการกล้อง/เลนส์:
-<strong>
-${cameras.length}
-</strong>
-รายการ
-</p>
-
-
-<p>
-เวลารอบเต็มรวม:
-<strong>
-${formatNumber(
-totalFullMinutes
-)}
-นาที
-</strong>
-</p>
-
-
-<p>
-เวลาดับรวม:
-<strong>
-${formatNumber(
-totalDownMinutes
-)}
-นาที
-</strong>
-</p>
-
-
-<p>
-เวลาทำงานรวม:
-<strong>
-${formatNumber(
-totalWorkingMinutes
-)}
-นาที
-</strong>
-</p>
+    <div class="info-row">
+        <strong>Observer entity:</strong>
+        SV-C06RR54
+    </div>
 
 </div>
 
 
 <table>
 
-<thead>
+    <thead>
 
-<tr>
+        <tr>
 
-<th>
-Source entity
-</th>
+            <th class="col-source">
+                Source entity
+            </th>
 
-<th>
-Uptime
-</th>
+            <th class="col-availability">
+                Availability
+            </th>
 
-<th>
-Operation Time
-</th>
+            <th class="col-uptime">
+                Uptime
+            </th>
 
-<th>
-Unexpected downtime
-</th>
+            <th class="col-downtime">
+                Unexpected downtime
+            </th>
 
-<th>
-Remark
-</th>
+        </tr>
 
-</tr>
-
-</thead>
+    </thead>
 
 
-<tbody>
+    <tbody>
 
-${rows}
+        ${rows}
 
-</tbody>
+    </tbody>
 
 </table>
-
-
-<script>
-
-window.print()
-
-<\/script>
 
 
 </body>
 
 </html>
 
-`);
+`;
 
 
-win.document.close();
+    /* =====================================================
+       เปิดหน้าพิมพ์
+       ===================================================== */
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank"
+        );
+
+
+    printWindow.document.write(html);
+
+    printWindow.document.close();
+
+    printWindow.focus();
+
+
+    setTimeout(()=>{
+
+        printWindow.print();
+
+    },500);
 
 }
-
-
 
 /* ==================================================
 Export CSV
