@@ -5061,8 +5061,74 @@ DEFAULT_CAMERA_COUNT
 );
 
 
-const oldCameras=
-cameras;
+const CAMERA_NAMES = [
+    "LKB-CCTV01-FIX01 - แยกนิคมซอย 1/1",
+    "LKB-CCTV01-FIX02 - แยกนิคมซอย 1/1",
+    "LKB-CCTV02-FIX01 - ทางเข้าเขตส่งออก 2",
+    "LKB-CCTV03-FIX01 - หน้าเขตส่งออก 2",
+    "LKB-CCTV04-FIX01 - แยกนิคม ซอย G/7",
+    "LKB-CCTV04-FIX02 - แยกนิคม ซอย G/7",
+    "LKB-CCTV05-FIX01 - แยกนิคม ซอย G1/11",
+    "LKB-CCTV06-FIX01 - แยกนิคมซอย G1/9",
+    "LKB-CCTV06-FIX02 - แยกนิคมซอย G1/9",
+    "LKB-CCTV07-FIX01 - หน้าบริษัท เพรชิเดนท์ เบเกอรี่",
+    "LKB-CCTV07-FIX02 - หน้าบริษัท เพรชิเดนท์ เบเกอรี่",
+    "LKB-CCTV08-FIX01 - แยก บริษัท S&P",
+    "LKB-CCTV08-FIX02 - แยก บริษัท S&P",
+    "LKB-CCTV08-PTZ01 - แยก บริษัท S&P",
+
+    "LKB-CCTV09-MS01 - โรงสูบน้ำบาดาล 2 - 1",
+    "LKB-CCTV09-MS01 - โรงสูบน้ำบาดาล 2 - 2",
+    "LKB-CCTV09-MS01 - โรงสูบน้ำบาดาล 2 - 3",
+    "LKB-CCTV09-MS01 - โรงสูบน้ำบาดาล 2 - 4",
+
+    "LKB-CCTV11-FIX01 - แยกนิคม ซอย E1/1",
+    "LKB-CCTV11-FIX02 - แยกนิคม ซอย E1/1",
+    "LKB-CCTV12-FIX01 - แยกนิคม ซอย E1/3",
+    "LKB-CCTV12-FIX02 - แยกนิคม ซอย E1/3",
+    "LKB-CCTV13-FIX01 - แยกนิคมซอย E1/5",
+    "LKB-CCTV13-FIX02 - แยกนิคมซอย E1/5",
+    "LKB-CCTV14-FIX01 - หน้าบริษัท KCE",
+    "LKB-CCTV14-FIX02 - หน้าบริษัท KCE",
+    "LKB-CCTV14-PTZ01 - หน้าบริษัท KCE",
+
+    "LKB-CCTV31-FIX01 - ทางเข้า-ออกแนวเขื่อน 1",
+    "LKB-CCTV31-FIX02 - ทางเข้า-ออกแนวเขื่อน 1",
+    "LKB-CCTV32-FIX01 - ทางเข้า-ออกแนวเขื่อน 2",
+    "LKB-CCTV32-FIX02 - ทางเข้า-ออกแนวเขื่อน 2",
+    "LKB-CCTV33-FIX01 - ทางเข้า-ออกแนวเขื่อน 3",
+    "LKB-CCTV33-FIX02 - ทางเข้า-ออกแนวเขื่อน 3",
+    "LKB-CCTV34-FIX01 - ทางเข้า-ออกแนวเขื่อน 4",
+    "LKB-CCTV34-FIX02 - ทางเข้า-ออกแนวเขื่อน 4",
+    "LKB-CCTV35-FIX01 - ทางเข้า-ออกแนวเขื่อน 5",
+    "LKB-CCTV35-FIX02 - ทางเข้า-ออกแนวเขื่อน 5",
+    "LKB-CCTV36-FIX01 - ทางเข้า-ออกแนวเขื่อน 6",
+    "LKB-CCTV36-FIX02 - ทางเข้า-ออกแนวเขื่อน 6",
+    "LKB-CCTV37-FIX01 - ทางเข้า-ออกแนวเขื่อน 7",
+    "LKB-CCTV37-FIX02 - ทางเข้า-ออกแนวเขื่อน 7",
+    "LKB-CCTV38-FIX01 - ทางเข้า-ออกแนวเขื่อน 8",
+    "LKB-CCTV38-FIX02 - ทางเข้า-ออกแนวเขื่อน 8",
+    "LKB-CCTV39-FIX01 - ทางเข้า-ออกแนวเขื่อน 9",
+    "LKB-CCTV39-FIX02 - ทางเข้า-ออกแนวเขื่อน 9",
+    "LKB-CCTV40-FIX01 - ทางเข้า-ออกแนวเขื่อน 10",
+    "LKB-CCTV40-FIX02 - ทางเข้า-ออกแนวเขื่อน 10",
+    "LKB-CCTV41-FIX01 - ทางเข้า-ออกแนวเขื่อน 11",
+    "LKB-CCTV41-FIX02 - ทางเข้า-ออกแนวเขื่อน 11",
+
+    "LKB-CCTV42-MS01 - ทางเข้า-ออกแนวเขื่อน 12 - 1",
+    "LKB-CCTV42-MS01 - ทางเข้า-ออกแนวเขื่อน 12 - 2",
+    "LKB-CCTV42-MS01 - ทางเข้า-ออกแนวเขื่อน 12 - 3",
+    "LKB-CCTV42-MS01 - ทางเข้า-ออกแนวเขื่อน 12 - 4",
+
+    "LKB-CCTV43-FIX01 - ทางเข้า-ออก แนวเขื่อน 13",
+    "LKB-CCTV43-FIX02 - ทางเข้า-ออก แนวเขื่อน 13",
+    "LKB-CCTV44-FIX01 - ทางเข้า-ออก แนวเขื่อน 14",
+    "LKB-CCTV44-FIX02 - ทางเข้า-ออก แนวเขื่อน 14",
+    "LKB-CCTV45-FIX01 - ทางเข้า-ออก แนวเขื่อน 15",
+    "LKB-CCTV45-FIX02 - ทางเข้า-ออก แนวเขื่อน 15",
+    "LKB-CCTV46-FIX01 - ทางเข้า-ออกแนวเขื่อน 16",
+    "LKB-CCTV46-FIX02 - ทางเข้า-ออกแนวเขื่อน 16"
+];
 
 
 cameras=
@@ -5070,16 +5136,9 @@ Array.from(
 {
 length:count
 },
-function(_,index){
-
-return (
-
-oldCameras[index] ||
-
-{
-
-name:
-defaultCameraName(index),
+function defaultCameraName(index) {
+    return CAMERA_NAMES[index] || `CCTV-${index + 1}`;
+}
 
 outages:[]
 
