@@ -5659,13 +5659,8 @@ totalWorkingMinutes
 เวลาดับรวม
 */
 
-document.getElementById(
-"sumDown"
-).textContent=
-
-formatThaiTime(
-totalDown
-);
+document.getElementById("sumDown").textContent =
+  Math.ceil(totalDown / 60) + " นาที";
 
 
 
