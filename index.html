@@ -2927,134 +2927,162 @@ saveData();
 
 function printReport(){
 
-    const month =
-        monthNames[
-            Number(document.getElementById("month").value) - 1
-        ];
-
-    const year =
-        Number(document.getElementById("year").value);
-
-    const user =
-        document.getElementById("reportUser").value || "Admin";
-
-    const monthNumber =
-        String(document.getElementById("month").value).padStart(2,"0");
-
-    const days =
-        daysInMonth(
-            Number(document.getElementById("month").value),
-            year
-        );
-
-    /* =====================================================
-       วันที่สร้างรายงาน
-       ===================================================== */
-
-    const now = new Date();
-
-    const reportDate =
-        String(now.getDate()).padStart(2,"0") + "/" +
-        String(now.getMonth()+1).padStart(2,"0") + "/" +
-        now.getFullYear() + " " +
-        now.toLocaleTimeString("en-US");
+calculateAll();
 
 
-    /* =====================================================
-       Event Timestamp
-       ===================================================== */
-
-    const eventTimestamp =
-        `${monthNumber}/01/${year} 12:00:00 AM and ` +
-        `${monthNumber}/${days}/${year} 11:59:59 PM`;
-
-
-    /* =====================================================
-       สร้างรายการกล้องทั้งหมด
-       ===================================================== */
-
-    let rows = "";
-
-    cameras.forEach((camera,index)=>{
-
-        const full =
-            reportPeriodSeconds();
-
-        const down =
-            getCameraDowntimeSeconds(camera);
-
-        const working =
-            Math.max(0,full-down);
-
-        const uptime =
-            full > 0
-                ? (working/full)*100
-                : 0;
+const monthIndex=
+Number(
+document.getElementById(
+"month"
+).value
+);
 
 
-        /*
-           แปลงเวลาเป็นรูปแบบ
-           29 d. 23 hr. 59 min. 59 sec.
-        */
-
-        function formatPrintDuration(totalSeconds){
-
-            totalSeconds =
-                Math.max(
-                    0,
-                    Math.floor(totalSeconds)
-                );
-
-            const d =
-                Math.floor(totalSeconds / 86400);
-
-            totalSeconds %= 86400;
-
-            const h =
-                Math.floor(totalSeconds / 3600);
-
-            totalSeconds %= 3600;
-
-            const m =
-                Math.floor(totalSeconds / 60);
-
-            const s =
-                totalSeconds % 60;
-
-            return `${d} d. ${h} hr. ${m} min. ${s} sec.`;
-        }
+const monthName=
+TH_MONTHS[
+monthIndex
+];
 
 
-        rows += `
-            <tr>
-
-                <td class="source">
-                    ${escapeHtml(camera.name)}
-                </td>
-
-                <td class="center">
-                    ${uptime.toFixed(2)}%
-                </td>
-
-                <td class="center">
-                    ${formatPrintDuration(working)}
-                </td>
-
-                <td class="center">
-                    ${formatPrintDuration(down)}
-                </td>
-
-            </tr>
-        `;
-
-    });
+const year=
+document.getElementById(
+"year"
+).value;
 
 
-    /* =====================================================
-       HTML สำหรับหน้าพิมพ์
-       ===================================================== */
+const user=
+escapeHtml(
+document.getElementById(
+"reportUser"
+).value
+);
 
-    const html = `
+
+const fullPeriod=
+reportPeriodSeconds();
+
+
+const totalFullMinutes=
+summaryFullPeriodMinutes();
+
+
+const totalDownSeconds=
+cameras.reduce(
+function(
+sum,
+camera
+){
+
+return sum+
+cameraDowntimeSeconds(
+camera
+);
+
+},
+0
+);
+
+
+const totalDownMinutes=
+totalDownSeconds/
+60;
+
+
+const totalWorkingMinutes=
+Math.max(
+0,
+totalFullMinutes-
+totalDownMinutes
+);
+
+
+const rows=
+cameras.map(
+function(camera){
+
+const down=
+Math.min(
+cameraDowntimeSeconds(
+camera
+),
+fullPeriod
+);
+
+
+const working=
+Math.max(
+0,
+fullPeriod-down
+);
+
+
+const uptime=
+working/
+fullPeriod*
+100;
+
+
+const remarks=
+camera.outages
+.map(
+function(x){
+
+return x.remark;
+
+}
+)
+.filter(Boolean)
+.join("; ");
+
+
+return `
+
+<tr>
+
+<td>
+${escapeHtml(
+camera.name
+)}
+</td>
+
+<td>
+${uptime.toFixed(2)}%
+</td>
+
+<td>
+${formatEnglishTime(
+working
+)}
+</td>
+
+<td>
+${formatEnglishTime(
+down
+)}
+</td>
+
+<td>
+${escapeHtml(
+remarks
+)}
+</td>
+
+</tr>
+
+`;
+
+}
+).join("");
+
+
+const win=
+window.open(
+"",
+"_blank"
+);
+
+
+win.document.write(`
 
 <!DOCTYPE html>
 
@@ -3062,166 +3090,775 @@ function printReport(){
 
 <head>
 
-<meta charset="UTF-8">
+<meta charset="utf-8">
 
-<title>Operation Report</title>
+<title>
+Operation Report
+</title>
 
 <style>
 
-@page {
+body{
 
-    size: A4 portrait;
+font-family:
+Arial,
+"Noto Sans Thai",
+sans-serif;
 
-    margin:
-        12mm
-        10mm
-        10mm
-        10mm;
+font-size:12px;
+
+margin:25px;
+
+color:#111827;
+
+}
+
+h1{
+font-size:18px;
+}
+
+p{
+margin:5px 0;
+}
+
+.summary{
+
+margin-top:15px;
+
+padding:12px;
+
+border:1px solid #999;
+
+}
+
+table{
+
+width:100%;
+
+border-collapse:collapse;
+
+margin-top:15px;
+
+}
+
+th,
+td{
+
+border:1px solid #999;
+
+padding:6px;
+
+}
+
+th{
+
+background:#eee;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<h1>
+
+รายงานผลการปฏิบัติงานตามปกติ
+
+(Operation Report)
+
+รอบเดือน
+${monthName}
+${year}
+
+</h1>
+
+
+<p>
+Report: Health statistics
+</p>
+
+
+<p>
+User: ${user}
+</p>
+
+
+<div class="summary">
+
+<p>
+จำนวนกล้องสำหรับสรุป:
+<strong>
+${SUMMARY_CAMERA_COUNT}
+</strong>
+ตัว
+</p>
+
+
+<p>
+จำนวนรายการกล้อง/เลนส์:
+<strong>
+${cameras.length}
+</strong>
+รายการ
+</p>
+
+
+<p>
+เวลารอบเต็มรวม:
+<strong>
+${formatNumber(
+totalFullMinutes
+)}
+นาที
+</strong>
+</p>
+
+
+<p>
+เวลาดับรวม:
+<strong>
+${formatNumber(
+totalDownMinutes
+)}
+นาที
+</strong>
+</p>
+
+
+<p>
+เวลาทำงานรวม:
+<strong>
+${formatNumber(
+totalWorkingMinutes
+)}
+นาที
+</strong>
+</p>
+
+</div>
+
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+Source entity
+</th>
+
+<th>
+Uptime
+</th>
+
+<th>
+Operation Time
+</th>
+
+<th>
+Unexpected downtime
+</th>
+
+<th>
+Remark
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+${rows}
+
+</tbody>
+
+</table>
+
+
+<script>
+
+window.print()
+
+<\/script>
+
+
+</body>
+
+</html>
+
+`);
+
+
+win.document.close();
+
 }
 
 
-* {
+
+/* ==================================================
+Export CSV
+================================================== */
+
+
+function exportCSV(){
+
+calculateAll();
+
+
+const fullPeriod=
+reportPeriodSeconds();
+
+
+let csv=
+"\uFEFF";
+
+
+csv+=
+"Source entity,Availability,Uptime,Operation Time,Unexpected downtime,Remark\n";
+
+
+cameras.forEach(
+function(camera){
+
+const down=
+Math.min(
+cameraDowntimeSeconds(
+camera
+),
+fullPeriod
+);
+
+
+const working=
+Math.max(
+0,
+fullPeriod-down
+);
+
+
+const uptime=
+working/
+fullPeriod*
+100;
+
+
+const remark=
+camera.outages
+.map(
+function(x){
+
+return x.remark;
+
+}
+)
+.filter(Boolean)
+.join("; ");
+
+
+const row=[
+
+camera.name,
+
+uptime.toFixed(2)+"%",
+
+uptime.toFixed(2)+"%",
+
+formatEnglishTime(
+working
+),
+
+formatEnglishTime(
+down
+),
+
+remark
+
+]
+.map(
+function(value){
+
+return '"'+
+String(value)
+.replace(
+/"/g,
+'""'
+)+
+'"';
+
+}
+)
+.join(",");
+
+
+csv+=
+row+
+"\n";
+
+}
+);
+
+
+const blob=
+new Blob(
+[csv],
+{
+type:
+"text/csv;charset=utf-8"
+}
+);
+
+
+const url=
+URL.createObjectURL(
+blob
+);
+
+
+const link=
+document.createElement(
+"a"
+);
+
+
+link.href=
+url;
+
+
+link.download=
+"CCTV_Operation_Report_"+
+document.getElementById(
+"year"
+).value+
+"_"+
+
+String(
+Number(
+document.getElementById(
+"month"
+).value
+)+1
+)
+.padStart(
+2,
+"0"
+)+
+".csv";
+
+
+link.click();
+
+
+URL.revokeObjectURL(
+url
+);
+
+}
+
+
+
+/* ==================================================
+เมื่อเปลี่ยนเดือน / ปี
+================================================== */
+
+
+document
+.getElementById(
+"month"
+)
+.addEventListener(
+"change",
+calculateAll
+);
+
+
+document
+.getElementById(
+"year"
+)
+.addEventListener(
+"change",
+calculateAll
+);
+
+
+document
+.getElementById(
+"reportUser"
+)
+.addEventListener(
+"change",
+saveData
+);
+
+
+
+/* ==================================================
+เริ่มโปรแกรม
+================================================== */
+
+init();
+
+</script>
+
+</body>
+
+</html><!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>CCTV Operation Report</title>
+
+<style>
+
+*{
     box-sizing:border-box;
 }
 
-
-body {
-
+body{
     margin:0;
-
-    font-family:
-        Arial,
-        "Noto Sans Thai",
-        Tahoma,
-        sans-serif;
-
-    color:#111;
-
-    font-size:11px;
-
+    background:#f3f6fa;
+    color:#172033;
+    font-family:Arial,"Noto Sans Thai",Tahoma,sans-serif;
 }
 
-
-.report-title {
-
-    font-size:15px;
-
-    font-weight:normal;
-
-    margin-bottom:12px;
-
+.container{
+    max-width:1450px;
+    margin:auto;
+    padding:24px;
 }
 
-
-.info {
-
-    line-height:1.75;
-
-    margin-bottom:6px;
-
+.header{
+    background:linear-gradient(135deg,#121c31,#2d3b57);
+    color:#fff;
+    border-radius:18px;
+    padding:28px 30px;
+    margin-bottom:20px;
 }
 
-
-.info-row {
-
-    white-space:nowrap;
-
+.header h1{
+    margin:0 0 8px;
+    font-size:30px;
 }
 
+.header p{
+    margin:0;
+    color:#dbe4f0;
+}
 
-table {
+.card{
+    background:#fff;
+    border:1px solid #e3e8ef;
+    border-radius:16px;
+    padding:22px;
+    margin-bottom:18px;
+    box-shadow:0 4px 14px rgba(15,23,42,.05);
+}
 
+h2{
+    font-size:20px;
+    margin:0 0 16px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+}
+
+.field label{
+    display:block;
+    font-weight:700;
+    margin-bottom:7px;
+    font-size:14px;
+}
+
+.field input,
+.field select{
     width:100%;
+    padding:11px 12px;
+    border:1px solid #cfd7e3;
+    border-radius:9px;
+    font-size:15px;
+    background:#fff;
+}
 
+.actions{
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+    margin-top:16px;
+}
+
+button{
+    border:0;
+    border-radius:9px;
+    padding:10px 15px;
+    font-weight:700;
+    cursor:pointer;
+    font-size:14px;
+}
+
+button:hover{
+    filter:brightness(.96);
+}
+
+.primary{
+    background:#2563eb;
+    color:#fff;
+}
+
+.success{
+    background:#059669;
+    color:#fff;
+}
+
+.secondary{
+    background:#e8edf4;
+    color:#26364f;
+}
+
+.danger{
+    background:#fee2e2;
+    color:#b91c1c;
+}
+
+.dark{
+    background:#17233b;
+    color:#fff;
+}
+
+.note{
+    font-size:13px;
+    color:#64748b;
+    line-height:1.6;
+    margin-top:8px;
+}
+
+.summary-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+
+.stat{
+    border:1px solid #e2e8f0;
+    background:#f8fafc;
+    border-radius:13px;
+    padding:17px;
+}
+
+.stat .label{
+    color:#64748b;
+    font-size:13px;
+}
+
+.stat .value{
+    font-size:22px;
+    font-weight:800;
+    margin-top:7px;
+}
+
+.green{
+    color:#059669;
+}
+
+.red{
+    color:#dc2626;
+}
+
+.blue{
+    color:#2563eb;
+}
+
+.purple{
+    color:#6d28d9;
+}
+
+.table-wrap{
+    overflow:auto;
+    border:1px solid #dce3ec;
+    border-radius:11px;
+}
+
+table{
+    width:100%;
     border-collapse:collapse;
-
-    table-layout:fixed;
-
+    min-width:1150px;
 }
 
-
-th,
-td {
-
-    border:1px solid #555;
-
-    padding:4px 5px;
-
-    font-size:10px;
-
-    height:20px;
-
-}
-
-
-th {
-
-    text-align:center;
-
-    font-weight:normal;
-
-    background:white;
-
-}
-
-
-.source {
-
-    width:34%;
-
-    text-align:center;
-
-}
-
-
-.center {
-
-    text-align:center;
-
+th{
+    background:#eef3f9;
+    color:#26364f;
+    font-size:13px;
+    text-align:left;
+    padding:10px;
+    border-bottom:1px solid #d5deea;
     white-space:nowrap;
+}
+
+td{
+    padding:9px 10px;
+    border-bottom:1px solid #e8edf3;
+    font-size:13px;
+    vertical-align:middle;
+}
+
+tr:last-child td{
+    border-bottom:0;
+}
+
+.camera-name-box{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    min-width:330px;
+}
+
+.cam-input{
+    width:100%;
+    padding:8px;
+    border:1px solid #d2d9e3;
+    border-radius:7px;
+}
+
+.save-name{
+    padding:7px 9px;
+    white-space:nowrap;
+}
+
+.saved-text{
+    color:#059669;
+    font-size:12px;
+    font-weight:bold;
+    white-space:nowrap;
+}
+
+.pill{
+    display:inline-block;
+    padding:4px 8px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:12px;
+    background:#ecfdf5;
+    color:#047857;
+}
+
+.pill.warn{
+    background:#fff7ed;
+    color:#c2410c;
+}
+
+.outage-table{
+    margin-top:14px;
+    min-width:720px;
+}
+
+.outage-form{
+    display:grid;
+    grid-template-columns:1.2fr .8fr .8fr .8fr 1.8fr auto;
+    gap:8px;
+    align-items:end;
+}
+
+.outage-form label{
+    display:block;
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:5px;
+}
+
+.outage-form input{
+    width:100%;
+    padding:9px;
+    border:1px solid #cfd7e3;
+    border-radius:8px;
+}
+
+.modal-backdrop{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.55);
+    z-index:20;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+}
+
+.modal-backdrop.show{
+    display:flex;
+}
+
+.modal{
+    background:#fff;
+    border-radius:16px;
+    width:min(900px,100%);
+    max-height:90vh;
+    overflow:auto;
+    padding:22px;
+}
+
+.modal-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+}
+
+.modal-head h3{
+    margin:0;
+}
+
+.close{
+    background:#e5e7eb;
+}
+
+.mini{
+    padding:7px 10px;
+    font-size:12px;
+}
+
+.footer{
+    text-align:center;
+    color:#64748b;
+    font-size:12px;
+    padding:10px;
+}
+
+@media(max-width:900px){
+
+    .grid,
+    .summary-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
 
 }
 
+@media(max-width:600px){
 
-thead {
+    .container{
+        padding:12px;
+    }
 
-    display:table-header-group;
+    .grid,
+    .summary-grid{
+        grid-template-columns:1fr;
+    }
 
-}
+    .header h1{
+        font-size:24px;
+    }
 
-
-tr {
-
-    page-break-inside:avoid;
-
-}
-
-
-.col-source {
-    width:34%;
-}
-
-
-.col-availability {
-    width:15%;
-}
-
-
-.col-uptime {
-    width:25%;
-}
-
-
-.col-downtime {
-    width:26%;
-}
-
-
-@media print {
-
-    body {
-        print-color-adjust:exact;
-        -webkit-print-color-adjust:exact;
+    .outage-form{
+        grid-template-columns:1fr 1fr;
     }
 
 }
@@ -3230,122 +3867,2949 @@ tr {
 
 </head>
 
-
 <body>
 
+<div class="container">
 
-<div class="report-title">
+<header class="header">
 
-    1 รายงานผลการปฏิบัติงานตามปกติ (Operation Report)
-    ระยะเวลาการใช้งานของรอบเดือน${month} ${year + 543}
+<h1>📹 CCTV Operation Report</h1>
+
+<p>
+ระบบสรุปผลการปฏิบัติงานและประสิทธิภาพกล้อง CCTV รายเดือน
+</p>
+
+</header>
+
+
+<!-- =========================
+ข้อมูลรอบการตรวจสอบ
+========================= -->
+
+<section class="card">
+
+<h2>⚙️ ข้อมูลรอบการตรวจสอบ</h2>
+
+<div class="grid">
+
+<div class="field">
+
+<label>เดือน</label>
+
+<select id="month"></select>
 
 </div>
 
 
-<div class="info">
+<div class="field">
 
-    <div class="info-row">
-        <strong>Report:</strong> Health statistics
-    </div>
+<label>ปี ค.ศ.</label>
 
-    <div class="info-row">
-        <strong>User:</strong> ${escapeHtml(user)}
-    </div>
+<input
+id="year"
+type="number"
+min="2000"
+max="2100"
+value="2026"
+>
 
-    <div class="info-row">
-        <strong>Date:</strong> ${reportDate}
-    </div>
+</div>
 
-    <div class="info-row">
-        <strong>Number of query results returned:</strong>
-        ${cameras.length}
-    </div>
 
-    <div class="info-row">
-        <strong>Source Group :</strong> Camera
-    </div>
+<div class="field">
 
-    <div class="info-row">
-        <strong>Event timestamp:</strong>
-        Between ${eventTimestamp}
-    </div>
+<label>จำนวนรายการกล้อง / เลนส์</label>
 
-    <div class="info-row">
-        <strong>Observer entity:</strong>
-        SV-C06RR54
-    </div>
+<input
+id="cameraCount"
+type="number"
+min="1"
+max="500"
+value="61"
+>
+
+</div>
+
+
+<div class="field">
+
+<label>ผู้จัดทำรายงาน</label>
+
+<input
+id="reportUser"
+value="Admin"
+>
+
+</div>
+
+</div>
+
+
+<div class="actions">
+
+<button
+class="primary"
+onclick="createCameras()"
+>
+สร้าง/ปรับรายการกล้อง
+</button>
+
+
+<button
+class="success"
+onclick="calculateAll()"
+>
+🧮 คำนวณทั้งหมด
+</button>
+
+
+<button
+class="secondary"
+onclick="loadExample()"
+>
+ตัวอย่างข้อมูล
+</button>
+
+
+<button
+class="secondary"
+onclick="clearAll()"
+>
+ล้าง Downtime
+</button>
+
+
+<button
+class="dark"
+onclick="printReport()"
+>
+🖨️ พิมพ์รายงาน
+</button>
+
+
+<button
+class="success"
+onclick="exportCSV()"
+>
+📊 Export CSV
+</button>
+
+</div>
+
+
+<div class="note">
+
+<strong>หมายเหตุ:</strong>
+
+รายการกล้อง/เลนส์มี
+
+<strong>61 รายการ</strong>
+
+แต่จำนวนกล้องสำหรับการสรุปผลรวมประจำเดือนใช้
+
+<strong>55 กล้อง</strong>
+
+ตามที่กำหนด
+
+</div>
+
+</section>
+
+
+
+<!-- =========================
+สรุปผลรวม
+========================= -->
+
+<section class="card">
+
+<h2>📊 สรุปผลรวมประจำเดือน</h2>
+
+
+<div class="summary-grid">
+
+
+<div class="stat">
+
+<div class="label">
+จำนวนกล้อง
+</div>
+
+<div
+class="value blue"
+id="sumCameras"
+>
+55
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="label">
+เวลารอบเต็ม / กล้อง
+</div>
+
+<div
+class="value"
+id="sumPeriod"
+>
+-
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="label">
+เวลาทำงานรวมทุกกล้อง
+</div>
+
+<div
+class="value green"
+id="sumWorking"
+>
+-
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="label">
+เวลาดับรวมทุกกล้อง
+</div>
+
+<div
+class="value red"
+id="sumDown"
+>
+-
+</div>
+
+</div>
+
+</div>
+
+
+<div
+class="summary-grid"
+style="margin-top:12px"
+>
+
+
+<div class="stat">
+
+<div class="label">
+Uptime เฉลี่ย
+</div>
+
+<div
+class="value purple"
+id="sumUptime"
+>
+-
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="label">
+เหตุการณ์ดับทั้งหมด
+</div>
+
+<div
+class="value"
+id="sumEvents"
+>
+-
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="label">
+กล้องที่มี Downtime
+</div>
+
+<div
+class="value red"
+id="sumAffected"
+>
+-
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<div class="label">
+กล้องที่ไม่มี Downtime
+</div>
+
+<div
+class="value green"
+id="sumPerfect"
+>
+-
+</div>
+
+</div>
+
+</div>
+
+
+<div class="note">
+
+<strong>สูตรเวลาทำงานรวม:</strong>
+
+เวลารอบเต็มรวมของ 55 กล้อง − เวลาดับรวมทุกกล้อง
+
+<br>
+
+ตัวอย่าง:
+
+55 × 30 × 24 × 60 = 2,376,000 นาที
+
+<br>
+
+ถ้า Downtime รวม 100 นาที
+
+→ เวลาทำงานรวม = 2,375,900 นาที
+
+</div>
+
+</section>
+
+
+
+<!-- =========================
+รายการกล้อง
+========================= -->
+
+<section class="card">
+
+<h2>📹 รายการกล้อง / เลนส์</h2>
+
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+#
+</th>
+
+<th>
+Source entity / ชื่อกล้อง
+</th>
+
+<th>
+เหตุการณ์ดับ
+</th>
+
+<th>
+เวลาทำงาน
+</th>
+
+<th>
+Unexpected downtime
+</th>
+
+<th>
+Uptime
+</th>
+
+<th>
+จัดการ
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="cameraBody"></tbody>
+
+</table>
+
+</div>
+
+
+<p class="note">
+
+สามารถแก้ชื่อกล้องได้ในช่องชื่อ
+
+จากนั้นกดปุ่ม
+
+<strong>💾 บันทึก</strong>
+
+ชื่อจะถูกบันทึกไว้ในเครื่องอัตโนมัติ
+
+แม้ปิดเว็บแล้วเปิดใหม่ชื่อก็ยังอยู่
+
+</p>
+
+</section>
+
+
+
+<!-- =========================
+Operation Report
+========================= -->
+
+<section class="card">
+
+<h2>📋 Operation Report</h2>
+
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+Source entity
+</th>
+
+<th>
+Availability
+</th>
+
+<th>
+Uptime
+</th>
+
+<th>
+Operation Time
+</th>
+
+<th>
+Unexpected downtime
+</th>
+
+<th>
+Remark
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="reportBody"></tbody>
+
+</table>
+
+</div>
+
+</section>
+
+
+<div class="footer">
+
+CCTV Operation Report
+
+</div>
+
+</div>
+
+
+
+<!-- =========================
+Downtime Modal
+========================= -->
+
+<div
+class="modal-backdrop"
+id="modal"
+>
+
+<div class="modal">
+
+
+<div class="modal-head">
+
+<div>
+
+<h3>
+⏱️ รายการเวลาที่กล้องดับ
+</h3>
+
+<div
+class="note"
+id="modalCamera"
+></div>
+
+</div>
+
+
+<button
+class="close"
+onclick="closeModal()"
+>
+ปิด
+</button>
+
+</div>
+
+
+<hr>
+
+
+<div class="outage-form">
+
+
+<div>
+
+<label>
+วันที่
+</label>
+
+<input
+id="outDate"
+type="number"
+min="1"
+>
+
+</div>
+
+
+<div>
+
+<label>
+ชั่วโมง
+</label>
+
+<input
+id="outH"
+type="number"
+min="0"
+value="0"
+>
+
+</div>
+
+
+<div>
+
+<label>
+นาที
+</label>
+
+<input
+id="outM"
+type="number"
+min="0"
+value="0"
+>
+
+</div>
+
+
+<div>
+
+<label>
+วินาที
+</label>
+
+<input
+id="outS"
+type="number"
+min="0"
+value="0"
+>
+
+</div>
+
+
+<div>
+
+<label>
+หมายเหตุ
+</label>
+
+<input
+id="outRemark"
+placeholder="เช่น สัญญาณ LOSS"
+>
+
+</div>
+
+
+<button
+class="success"
+onclick="addOutage()"
+>
++ เพิ่ม
+</button>
+
+</div>
+
+
+<div class="table-wrap">
+
+<table class="outage-table">
+
+<thead>
+
+<tr>
+
+<th>#</th>
+
+<th>วันที่</th>
+
+<th>เวลา</th>
+
+<th>หมายเหตุ</th>
+
+<th>จัดการ</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="outageBody"></tbody>
+
+</table>
+
+</div>
+
+
+<div class="actions">
+
+<button
+class="primary"
+onclick="saveOutages()"
+>
+บันทึกและคำนวณ
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<script>
+
+
+/* ==================================================
+ตัวแปรหลัก
+================================================== */
+
+
+const TH_MONTHS=[
+
+"มกราคม",
+"กุมภาพันธ์",
+"มีนาคม",
+"เมษายน",
+"พฤษภาคม",
+"มิถุนายน",
+"กรกฎาคม",
+"สิงหาคม",
+"กันยายน",
+"ตุลาคม",
+"พฤศจิกายน",
+"ธันวาคม"
+
+];
+
+
+const STORAGE_KEY=
+"CCTV_OPERATION_REPORT_FINAL";
+
+
+/*
+จำนวนกล้องสำหรับสรุปผล
+คงที่ 55
+*/
+
+const SUMMARY_CAMERA_COUNT=55;
+
+
+/*
+รายการจริงที่ต้องแสดง
+61 รายการ
+*/
+
+const DEFAULT_CAMERA_COUNT=61;
+
+
+let cameras=[];
+
+let currentCamera=-1;
+
+
+
+/* ==================================================
+เริ่มโปรแกรม
+================================================== */
+
+
+function init(){
+
+const select=
+document.getElementById("month");
+
+
+TH_MONTHS.forEach(
+function(name,index){
+
+const option=
+document.createElement("option");
+
+option.value=index;
+
+option.textContent=name;
+
+select.appendChild(option);
+
+}
+);
+
+
+select.value=8;
+
+
+/*
+โหลดข้อมูลที่บันทึกไว้
+*/
+
+loadSavedData();
+
+
+/*
+ถ้าไม่มีข้อมูลเก่า
+สร้าง 61 รายการ
+*/
+
+if(!cameras.length){
+
+document.getElementById(
+"cameraCount"
+).value=
+DEFAULT_CAMERA_COUNT;
+
+createCameras();
+
+}else{
+
+document.getElementById(
+"cameraCount"
+).value=
+cameras.length;
+
+renderCameras();
+
+calculateAll();
+
+}
+
+}
+
+
+
+/* ==================================================
+จำนวนวันในเดือน
+================================================== */
+
+
+function daysInMonth(month,year){
+
+return new Date(
+year,
+month+1,
+0
+).getDate();
+
+}
+
+
+
+/* ==================================================
+เวลารอบเต็มต่อกล้อง
+================================================== */
+
+
+function reportPeriodSeconds(){
+
+const month=
+Number(
+document.getElementById("month").value
+);
+
+
+const year=
+Number(
+document.getElementById("year").value
+);
+
+
+/*
+ยังคงสูตรเดิม
+เดือน 30 วัน
+
+30 x 24 x 60 x 60 - 1
+
+= 29 วัน 23 ชั่วโมง 59 นาที 59 วินาที
+*/
+
+return (
+daysInMonth(month,year)
+*86400
+)-1;
+
+}
+
+
+
+/* ==================================================
+เวลารอบเต็มรวม 55 กล้อง
+หน่วย = นาที
+================================================== */
+
+
+function summaryFullPeriodMinutes(){
+
+const month=
+Number(
+document.getElementById("month").value
+);
+
+
+const year=
+Number(
+document.getElementById("year").value
+);
+
+
+const days=
+daysInMonth(
+month,
+year
+);
+
+
+/*
+สูตรที่ผู้ใช้กำหนด
+
+55 x จำนวนวัน x 24 x 60
+*/
+
+return (
+SUMMARY_CAMERA_COUNT
+*
+days
+*
+24
+*
+60
+);
+
+}
+
+
+
+/* ==================================================
+จัดรูปแบบเวลา
+================================================== */
+
+
+function formatThaiTime(seconds){
+
+seconds=
+Math.max(
+0,
+Math.round(seconds)
+);
+
+
+const days=
+Math.floor(
+seconds/86400
+);
+
+
+seconds%=
+86400;
+
+
+const hours=
+Math.floor(
+seconds/3600
+);
+
+
+seconds%=
+3600;
+
+
+const minutes=
+Math.floor(
+seconds/60
+);
+
+
+const secs=
+seconds%60;
+
+
+const result=[];
+
+
+if(days>0)
+result.push(
+days+" วัน"
+);
+
+
+if(hours>0)
+result.push(
+hours+" ชั่วโมง"
+);
+
+
+if(minutes>0)
+result.push(
+minutes+" นาที"
+);
+
+
+if(
+secs>0 ||
+result.length===0
+){
+
+result.push(
+secs+" วินาที"
+);
+
+}
+
+
+return result.join(" ");
+
+}
+
+
+
+/* ==================================================
+เวลาอังกฤษสำหรับ Operation Report
+================================================== */
+
+
+function formatEnglishTime(seconds){
+
+seconds=
+Math.max(
+0,
+Math.round(seconds)
+);
+
+
+const days=
+Math.floor(
+seconds/86400
+);
+
+
+seconds%=
+86400;
+
+
+const hours=
+Math.floor(
+seconds/3600
+);
+
+
+seconds%=
+3600;
+
+
+const minutes=
+Math.floor(
+seconds/60
+);
+
+
+const secs=
+seconds%60;
+
+
+return (
+
+days+
+" d. "+
+hours+
+" hr. "+
+minutes+
+" min. "+
+secs+
+" sec."
+
+);
+
+}
+
+
+
+/* ==================================================
+จัดรูปแบบตัวเลข
+================================================== */
+
+
+function formatNumber(number){
+
+return Number(number)
+.toLocaleString(
+"en-US",
+{
+maximumFractionDigits:2
+}
+);
+
+}
+
+
+
+/* ==================================================
+ป้องกัน HTML
+================================================== */
+
+
+function escapeHtml(text){
+
+return String(text)
+.replace(
+/[&<>"']/g,
+function(c){
+
+return {
+
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#039;"
+
+}[c];
+
+}
+);
+
+}
+
+
+
+/* ==================================================
+ชื่อกล้องเริ่มต้น
+================================================== */
+
+
+function defaultCameraName(index){
+
+return (
+
+"LKB-CCTV"+
+String(index+1)
+.padStart(2,"0")+
+"-FIX01"
+
+);
+
+}
+
+
+
+/* ==================================================
+บันทึกข้อมูลในเครื่อง
+================================================== */
+
+
+function saveData(){
+
+localStorage.setItem(
+STORAGE_KEY,
+JSON.stringify({
+
+cameras:cameras,
+
+reportUser:
+document.getElementById(
+"reportUser"
+).value
+
+})
+);
+
+}
+
+
+
+/* ==================================================
+โหลดข้อมูลจากเครื่อง
+================================================== */
+
+
+function loadSavedData(){
+
+try{
+
+const saved=
+JSON.parse(
+localStorage.getItem(
+STORAGE_KEY
+) ||
+"null"
+);
+
+
+if(
+saved &&
+Array.isArray(
+saved.cameras
+)
+){
+
+cameras=
+saved.cameras.map(
+function(camera,index){
+
+return {
+
+name:
+camera.name ||
+defaultCameraName(index),
+
+outages:
+Array.isArray(
+camera.outages
+)
+?
+camera.outages
+:
+[]
+
+};
+
+}
+);
+
+
+if(
+saved.reportUser
+){
+
+document.getElementById(
+"reportUser"
+).value=
+saved.reportUser;
+
+}
+
+}
+
+}catch(error){
+
+cameras=[];
+
+}
+
+}
+
+
+
+/* ==================================================
+สร้าง / ปรับจำนวนรายการกล้อง
+================================================== */
+
+
+function createCameras(){
+
+const count=
+Math.max(
+1,
+Math.floor(
+Number(
+document.getElementById(
+"cameraCount"
+).value
+) ||
+DEFAULT_CAMERA_COUNT
+)
+);
+
+
+const oldCameras=
+cameras;
+
+
+cameras=
+Array.from(
+{
+length:count
+},
+function(_,index){
+
+return (
+
+oldCameras[index] ||
+
+{
+
+name:
+defaultCameraName(index),
+
+outages:[]
+
+}
+
+);
+
+}
+);
+
+
+renderCameras();
+
+calculateAll();
+
+saveData();
+
+}
+
+
+
+/* ==================================================
+แก้ชื่อกล้อง + บันทึก
+================================================== */
+
+
+function updateCameraName(
+index,
+name
+){
+
+name=
+String(
+name ||
+""
+).trim();
+
+
+if(
+name===""
+){
+
+alert(
+"กรุณาระบุชื่อกล้อง"
+);
+
+renderCameras();
+
+return;
+
+}
+
+
+cameras[index].name=
+name;
+
+
+/*
+บันทึกลงเครื่องทันที
+*/
+
+saveData();
+
+
+/*
+คำนวณใหม่
+*/
+
+calculateAll();
+
+
+/*
+แสดงข้อความบันทึก
+*/
+
+const savedText=
+document.getElementById(
+"saved-"+index
+);
+
+
+if(savedText){
+
+savedText.textContent=
+"✓ บันทึกแล้ว";
+
+
+setTimeout(
+function(){
+
+if(savedText){
+
+savedText.textContent="";
+
+}
+
+},
+1500
+);
+
+}
+
+}
+
+
+
+/* ==================================================
+แสดงรายการกล้อง
+================================================== */
+
+
+function renderCameras(){
+
+const body=
+document.getElementById(
+"cameraBody"
+);
+
+
+body.innerHTML="";
+
+
+cameras.forEach(
+function(camera,index){
+
+
+const row=
+document.createElement("tr");
+
+
+row.innerHTML=`
+
+<td>
+${index+1}
+</td>
+
+
+<td>
+
+<div class="camera-name-box">
+
+<input
+id="camera-name-${index}"
+class="cam-input"
+value="${escapeHtml(camera.name)}"
+onkeydown="
+if(event.key==='Enter'){
+updateCameraName(
+${index},
+this.value
+);
+this.blur();
+}
+"
+>
+
+
+<button
+class="mini success save-name"
+onclick="
+updateCameraName(
+${index},
+document.getElementById(
+'camera-name-${index}'
+).value
+)
+"
+>
+💾
+</button>
+
+
+<span
+class="saved-text"
+id="saved-${index}"
+></span>
+
+</div>
+
+</td>
+
+
+<td>
+
+<span
+id="events-${index}"
+>
+0
+</span>
+
+รายการ
+
+<br>
+
+<button
+class="mini primary"
+onclick="openModal(${index})"
+>
+จัดการ Downtime
+</button>
+
+</td>
+
+
+<td
+id="work-${index}"
+>
+-
+</td>
+
+
+<td
+id="down-${index}"
+>
+-
+</td>
+
+
+<td
+id="uptime-${index}"
+>
+-
+</td>
+
+
+<td>
+
+<button
+class="mini danger"
+onclick="removeCamera(${index})"
+>
+ลบ
+</button>
+
+</td>
+
+`;
+
+
+body.appendChild(row);
+
+}
+);
+
+}
+
+
+
+/* ==================================================
+ลบรายการกล้อง
+================================================== */
+
+
+function removeCamera(index){
+
+if(
+cameras.length<=1
+){
+
+alert(
+"ต้องมีอย่างน้อย 1 รายการ"
+);
+
+return;
+
+}
+
+
+if(
+confirm(
+"ต้องการลบรายการนี้หรือไม่?"
+)
+){
+
+cameras.splice(
+index,
+1
+);
+
+
+document.getElementById(
+"cameraCount"
+).value=
+cameras.length;
+
+
+renderCameras();
+
+calculateAll();
+
+saveData();
+
+}
+
+}
+
+
+
+/* ==================================================
+รวมเวลาที่กล้องดับ
+================================================== */
+
+
+function cameraDowntimeSeconds(
+camera
+){
+
+return camera.outages.reduce(
+function(
+total,
+outage
+){
+
+return (
+
+total+
+
+(Number(outage.hours)||0)
+*3600+
+
+(Number(outage.minutes)||0)
+*60+
+
+(Number(outage.seconds)||0)
+
+);
+
+},
+0
+);
+
+}
+
+
+
+/* ==================================================
+คำนวณทั้งหมด
+================================================== */
+
+
+function calculateAll(){
+
+const fullPeriod=
+reportPeriodSeconds();
+
+
+let totalDown=0;
+
+let totalUptime=0;
+
+let totalEvents=0;
+
+let affected=0;
+
+let perfect=0;
+
+
+/*
+คำนวณแต่ละรายการ
+*/
+
+cameras.forEach(
+function(
+camera,
+index
+){
+
+const down=
+Math.min(
+cameraDowntimeSeconds(
+camera
+),
+fullPeriod
+);
+
+
+const working=
+Math.max(
+0,
+fullPeriod-down
+);
+
+
+const uptimePercent=
+fullPeriod>0
+?
+(
+working/
+fullPeriod
+)*100
+:
+0;
+
+
+totalDown+=down;
+
+totalUptime+=
+uptimePercent;
+
+totalEvents+=
+camera.outages.length;
+
+
+if(down>0){
+
+affected++;
+
+}else{
+
+perfect++;
+
+}
+
+
+/*
+แสดงผลรายกล้อง
+*/
+
+const eventElement=
+document.getElementById(
+"events-"+index
+);
+
+
+const workElement=
+document.getElementById(
+"work-"+index
+);
+
+
+const downElement=
+document.getElementById(
+"down-"+index
+);
+
+
+const uptimeElement=
+document.getElementById(
+"uptime-"+index
+);
+
+
+if(eventElement){
+
+eventElement.textContent=
+camera.outages.length;
+
+}
+
+
+if(workElement){
+
+workElement.textContent=
+formatThaiTime(
+working
+);
+
+}
+
+
+if(downElement){
+
+downElement.textContent=
+formatThaiTime(
+down
+);
+
+}
+
+
+if(uptimeElement){
+
+uptimeElement.innerHTML=
+
+`
+<span
+class="pill ${
+uptimePercent>=99.99
+?
+""
+:
+"warn"
+}"
+>
+${uptimePercent.toFixed(2)}%
+</span>
+`;
+
+}
+
+}
+);
+
+
+
+/* ==================================================
+ส่วนสรุปผลรวม
+
+สำคัญ:
+
+เวลารอบเต็มรวม
+=
+55 x วัน x 24 x 60
+
+เวลาทำงานรวม
+=
+เวลารอบเต็มรวม
+-
+เวลาดับรวม
+================================================== */
+
+
+const fullPeriodTotalMinutes=
+summaryFullPeriodMinutes();
+
+
+const totalDownMinutes=
+totalDown/
+60;
+
+
+/*
+นี่คือสูตรใหม่ตามที่ผู้ใช้ต้องการ
+*/
+
+const totalWorkingMinutes=
+Math.max(
+0,
+fullPeriodTotalMinutes-
+totalDownMinutes
+);
+
+
+
+/*
+จำนวนกล้องในสรุป = 55
+*/
+
+document.getElementById(
+"sumCameras"
+).textContent=
+SUMMARY_CAMERA_COUNT;
+
+
+
+/*
+เวลารอบเต็ม = นาที
+*/
+
+document.getElementById(
+"sumPeriod"
+).textContent=
+
+formatNumber(
+fullPeriodTotalMinutes
+)+
+" นาที";
+
+
+
+/*
+เวลาทำงานรวม = นาที
+*/
+
+document.getElementById(
+"sumWorking"
+).textContent=
+
+formatNumber(
+totalWorkingMinutes
+)+
+" นาที";
+
+
+
+/*
+เวลาดับรวม
+*/
+
+document.getElementById(
+"sumDown"
+).textContent=
+
+formatThaiTime(
+totalDown
+);
+
+
+
+/*
+Uptime เฉลี่ย
+
+ใช้สูตรเดียวกับเวลารวม
+*/
+
+const averageUptime=
+
+fullPeriodTotalMinutes>0
+?
+
+(
+totalWorkingMinutes/
+fullPeriodTotalMinutes
+)*100
+
+:
+0;
+
+
+document.getElementById(
+"sumUptime"
+).textContent=
+
+averageUptime.toFixed(2)+
+"%";
+
+
+
+document.getElementById(
+"sumEvents"
+).textContent=
+totalEvents;
+
+
+document.getElementById(
+"sumAffected"
+).textContent=
+affected;
+
+
+document.getElementById(
+"sumPerfect"
+).textContent=
+perfect;
+
+
+
+renderReport();
+
+saveData();
+
+}
+
+
+
+/* ==================================================
+Operation Report
+================================================== */
+
+
+function renderReport(){
+
+const body=
+document.getElementById(
+"reportBody"
+);
+
+
+body.innerHTML="";
+
+
+const fullPeriod=
+reportPeriodSeconds();
+
+
+cameras.forEach(
+function(camera){
+
+const down=
+Math.min(
+cameraDowntimeSeconds(
+camera
+),
+fullPeriod
+);
+
+
+const working=
+Math.max(
+0,
+fullPeriod-down
+);
+
+
+const uptimePercent=
+working/
+fullPeriod*
+100;
+
+
+const remarks=
+camera.outages
+.map(
+function(x){
+
+return x.remark;
+
+}
+)
+.filter(Boolean)
+.join("; ");
+
+
+const row=
+document.createElement(
+"tr"
+);
+
+
+row.innerHTML=`
+
+<td>
+${escapeHtml(
+camera.name
+)}
+</td>
+
+
+<td>
+${uptimePercent.toFixed(2)}%
+</td>
+
+
+<td>
+${uptimePercent.toFixed(2)}%
+</td>
+
+
+<td>
+${formatEnglishTime(
+working
+)}
+</td>
+
+
+<td>
+${formatEnglishTime(
+down
+)}
+</td>
+
+
+<td>
+${escapeHtml(
+remarks
+)}
+</td>
+
+`;
+
+
+body.appendChild(row);
+
+}
+);
+
+}
+
+
+
+/* ==================================================
+เปิด Downtime
+================================================== */
+
+
+function openModal(index){
+
+currentCamera=
+index;
+
+
+document.getElementById(
+"modalCamera"
+).textContent=
+cameras[index].name;
+
+
+renderOutages();
+
+
+document.getElementById(
+"outDate"
+).value="";
+
+
+document.getElementById(
+"outH"
+).value=0;
+
+
+document.getElementById(
+"outM"
+).value=0;
+
+
+document.getElementById(
+"outS"
+).value=0;
+
+
+document.getElementById(
+"outRemark"
+).value="";
+
+
+document.getElementById(
+"modal"
+).classList.add(
+"show"
+);
+
+}
+
+
+
+/* ==================================================
+ปิด Modal
+================================================== */
+
+
+function closeModal(){
+
+document.getElementById(
+"modal"
+).classList.remove(
+"show"
+);
+
+
+currentCamera=-1;
+
+}
+
+
+
+/* ==================================================
+แสดง Downtime
+================================================== */
+
+
+function renderOutages(){
+
+const body=
+document.getElementById(
+"outageBody"
+);
+
+
+body.innerHTML="";
+
+
+if(
+currentCamera<0
+)
+return;
+
+
+const outages=
+cameras[
+currentCamera
+].outages;
+
+
+if(
+!outages.length
+){
+
+body.innerHTML=`
+
+<tr>
+
+<td
+colspan="5"
+style="
+text-align:center;
+color:#64748b
+"
+>
+ยังไม่มีรายการ Downtime
+</td>
+
+</tr>
+
+`;
+
+return;
+
+}
+
+
+
+outages.forEach(
+function(
+outage,
+index
+){
+
+const totalSeconds=
+
+(Number(outage.hours)||0)
+*3600+
+
+(Number(outage.minutes)||0)
+*60+
+
+(Number(outage.seconds)||0);
+
+
+const row=
+document.createElement(
+"tr"
+);
+
+
+row.innerHTML=`
+
+<td>
+${index+1}
+</td>
+
+
+<td>
+วันที่ ${outage.date}
+</td>
+
+
+<td>
+${formatThaiTime(
+totalSeconds
+)}
+</td>
+
+
+<td>
+${escapeHtml(
+outage.remark||""
+)}
+</td>
+
+
+<td>
+
+<button
+class="mini danger"
+onclick="deleteOutage(${index})"
+>
+ลบ
+</button>
+
+</td>
+
+`;
+
+
+body.appendChild(row);
+
+}
+);
+
+}
+
+
+
+/* ==================================================
+เพิ่ม Downtime
+================================================== */
+
+
+function addOutage(){
+
+if(
+currentCamera<0
+)
+return;
+
+
+const month=
+Number(
+document.getElementById(
+"month"
+).value
+);
+
+
+const year=
+Number(
+document.getElementById(
+"year"
+).value
+);
+
+
+const maxDay=
+daysInMonth(
+month,
+year
+);
+
+
+const date=
+Math.floor(
+Number(
+document.getElementById(
+"outDate"
+).value
+)
+);
+
+
+const hours=
+Math.max(
+0,
+Math.floor(
+Number(
+document.getElementById(
+"outH"
+).value
+)||
+0
+)
+);
+
+
+const minutes=
+Math.max(
+0,
+Math.floor(
+Number(
+document.getElementById(
+"outM"
+).value
+)||
+0
+)
+);
+
+
+const seconds=
+Math.max(
+0,
+Math.floor(
+Number(
+document.getElementById(
+"outS"
+).value
+)||
+0
+)
+);
+
+
+if(
+!date ||
+date<1 ||
+date>maxDay
+){
+
+alert(
+"กรุณาใส่วันที่ 1-"+maxDay
+);
+
+return;
+
+}
+
+
+if(
+hours===0 &&
+minutes===0 &&
+seconds===0
+){
+
+alert(
+"กรุณาใส่เวลาที่กล้องดับ"
+);
+
+return;
+
+}
+
+
+cameras[
+currentCamera
+].outages.push({
+
+date:date,
+
+hours:hours,
+
+minutes:minutes,
+
+seconds:seconds,
+
+remark:
+document.getElementById(
+"outRemark"
+).value.trim()
+
+});
+
+
+cameras[
+currentCamera
+].outages.sort(
+function(a,b){
+
+return a.date-b.date;
+
+}
+);
+
+
+renderOutages();
+
+saveData();
+
+}
+
+
+
+/* ==================================================
+ลบ Downtime
+================================================== */
+
+
+function deleteOutage(index){
+
+cameras[
+currentCamera
+].outages.splice(
+index,
+1
+);
+
+
+renderOutages();
+
+saveData();
+
+}
+
+
+
+/* ==================================================
+บันทึก Downtime
+================================================== */
+
+
+function saveOutages(){
+
+calculateAll();
+
+closeModal();
+
+}
+
+
+
+/* ==================================================
+ล้าง Downtime
+================================================== */
+
+
+function clearAll(){
+
+if(
+!confirm(
+"ต้องการล้าง Downtime ของกล้อง/เลนส์ทั้งหมดหรือไม่?"
+)
+)
+return;
+
+
+cameras.forEach(
+function(camera){
+
+camera.outages=[];
+
+}
+);
+
+
+renderCameras();
+
+calculateAll();
+
+saveData();
+
+}
+
+
+
+/* ==================================================
+ตัวอย่างข้อมูล
+================================================== */
+
+
+function loadExample(){
+
+document.getElementById(
+"month"
+).value=8;
+
+
+document.getElementById(
+"year"
+).value=2026;
+
+
+document.getElementById(
+"cameraCount"
+).value=61;
+
+
+document.getElementById(
+"reportUser"
+).value="Admin";
+
+
+cameras=
+Array.from(
+{
+length:61
+},
+function(_,index){
+
+return {
+
+name:
+defaultCameraName(index),
+
+outages:[]
+
+};
+
+}
+);
+
+
+/*
+ตัวอย่างกล้อง 1
+
+5 นาที 58 วินาที
++
+10 นาที
+
+รวม 15 นาที 58 วินาที
+*/
+
+
+cameras[0].outages=[
+
+{
+
+date:5,
+
+hours:0,
+
+minutes:5,
+
+seconds:58,
+
+remark:"สัญญาณ LOSS"
+
+},
+
+{
+
+date:18,
+
+hours:0,
+
+minutes:10,
+
+seconds:0,
+
+remark:"สัญญาณ LOSS"
+
+}
+
+];
+
+
+cameras[1].outages=[
+
+{
+
+date:9,
+
+hours:0,
+
+minutes:15,
+
+seconds:58,
+
+remark:"สัญญาณ LOSS"
+
+}
+
+];
+
+
+cameras[6].outages=[
+
+{
+
+date:12,
+
+hours:0,
+
+minutes:1,
+
+seconds:49,
+
+remark:"สัญญาณ LOSS"
+
+}
+
+];
+
+
+cameras[7].outages=[
+
+{
+
+date:20,
+
+hours:0,
+
+minutes:3,
+
+seconds:9,
+
+remark:"สัญญาณ LOSS"
+
+}
+
+];
+
+
+renderCameras();
+
+calculateAll();
+
+saveData();
+
+}
+
+
+
+/* ==================================================
+พิมพ์รายงาน
+================================================== */
+
+
+function printReport(){
+
+calculateAll();
+
+
+const monthIndex=
+Number(
+document.getElementById(
+"month"
+).value
+);
+
+
+const monthName=
+TH_MONTHS[
+monthIndex
+];
+
+
+const year=
+document.getElementById(
+"year"
+).value;
+
+
+const user=
+escapeHtml(
+document.getElementById(
+"reportUser"
+).value
+);
+
+
+const fullPeriod=
+reportPeriodSeconds();
+
+
+const totalFullMinutes=
+summaryFullPeriodMinutes();
+
+
+const totalDownSeconds=
+cameras.reduce(
+function(
+sum,
+camera
+){
+
+return sum+
+cameraDowntimeSeconds(
+camera
+);
+
+},
+0
+);
+
+
+const totalDownMinutes=
+totalDownSeconds/
+60;
+
+
+const totalWorkingMinutes=
+Math.max(
+0,
+totalFullMinutes-
+totalDownMinutes
+);
+
+
+const rows=
+cameras.map(
+function(camera){
+
+const down=
+Math.min(
+cameraDowntimeSeconds(
+camera
+),
+fullPeriod
+);
+
+
+const working=
+Math.max(
+0,
+fullPeriod-down
+);
+
+
+const uptime=
+working/
+fullPeriod*
+100;
+
+
+const remarks=
+camera.outages
+.map(
+function(x){
+
+return x.remark;
+
+}
+)
+.filter(Boolean)
+.join("; ");
+
+
+return `
+
+<tr>
+
+<td>
+${escapeHtml(
+camera.name
+)}
+</td>
+
+<td>
+${uptime.toFixed(2)}%
+</td>
+
+<td>
+${formatEnglishTime(
+working
+)}
+</td>
+
+<td>
+${formatEnglishTime(
+down
+)}
+</td>
+
+<td>
+${escapeHtml(
+remarks
+)}
+</td>
+
+</tr>
+
+`;
+
+}
+).join("");
+
+
+const win=
+window.open(
+"",
+"_blank"
+);
+
+
+win.document.write(`
+
+<!DOCTYPE html>
+
+<html lang="th">
+
+<head>
+
+<meta charset="utf-8">
+
+<title>
+Operation Report
+</title>
+
+<style>
+
+body{
+
+font-family:
+Arial,
+"Noto Sans Thai",
+sans-serif;
+
+font-size:12px;
+
+margin:25px;
+
+color:#111827;
+
+}
+
+h1{
+font-size:18px;
+}
+
+p{
+margin:5px 0;
+}
+
+.summary{
+
+margin-top:15px;
+
+padding:12px;
+
+border:1px solid #999;
+
+}
+
+table{
+
+width:100%;
+
+border-collapse:collapse;
+
+margin-top:15px;
+
+}
+
+th,
+td{
+
+border:1px solid #999;
+
+padding:6px;
+
+}
+
+th{
+
+background:#eee;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<h1>
+
+รายงานผลการปฏิบัติงานตามปกติ
+
+(Operation Report)
+
+รอบเดือน
+${monthName}
+${year}
+
+</h1>
+
+
+<p>
+Report: Health statistics
+</p>
+
+
+<p>
+User: ${user}
+</p>
+
+
+<div class="summary">
+
+<p>
+จำนวนกล้องสำหรับสรุป:
+<strong>
+${SUMMARY_CAMERA_COUNT}
+</strong>
+ตัว
+</p>
+
+
+<p>
+จำนวนรายการกล้อง/เลนส์:
+<strong>
+${cameras.length}
+</strong>
+รายการ
+</p>
+
+
+<p>
+เวลารอบเต็มรวม:
+<strong>
+${formatNumber(
+totalFullMinutes
+)}
+นาที
+</strong>
+</p>
+
+
+<p>
+เวลาดับรวม:
+<strong>
+${formatNumber(
+totalDownMinutes
+)}
+นาที
+</strong>
+</p>
+
+
+<p>
+เวลาทำงานรวม:
+<strong>
+${formatNumber(
+totalWorkingMinutes
+)}
+นาที
+</strong>
+</p>
 
 </div>
 
 
 <table>
 
-    <thead>
+<thead>
 
-        <tr>
+<tr>
 
-            <th class="col-source">
-                Source entity
-            </th>
+<th>
+Source entity
+</th>
 
-            <th class="col-availability">
-                Availability
-            </th>
+<th>
+Uptime
+</th>
 
-            <th class="col-uptime">
-                Uptime
-            </th>
+<th>
+Operation Time
+</th>
 
-            <th class="col-downtime">
-                Unexpected downtime
-            </th>
+<th>
+Unexpected downtime
+</th>
 
-        </tr>
+<th>
+Remark
+</th>
 
-    </thead>
+</tr>
+
+</thead>
 
 
-    <tbody>
+<tbody>
 
-        ${rows}
+${rows}
 
-    </tbody>
+</tbody>
 
 </table>
+
+
+<script>
+
+window.print()
+
+<\/script>
 
 
 </body>
 
 </html>
 
-`;
+`);
 
 
-    /* =====================================================
-       เปิดหน้าพิมพ์
-       ===================================================== */
-
-    const printWindow =
-        window.open(
-            "",
-            "_blank"
-        );
-
-
-    printWindow.document.write(html);
-
-    printWindow.document.close();
-
-    printWindow.focus();
-
-
-    setTimeout(()=>{
-
-        printWindow.print();
-
-    },500);
+win.document.close();
 
 }
+
+
 
 /* ==================================================
 Export CSV
