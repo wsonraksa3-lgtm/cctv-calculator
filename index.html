@@ -2095,11 +2095,11 @@ totalDown/
 นี่คือสูตรใหม่ตามที่ผู้ใช้ต้องการ
 */
 
-const totalWorkingMinutes=
-Math.max(
-0,
-fullPeriodTotalMinutes-
-totalDownMinutes
+const totalWorkingMinutes=Math.ceil(
+  Math.max(
+    0,
+    fullPeriodTotalMinutes-totalDownMinutes
+  )
 );
 
 
